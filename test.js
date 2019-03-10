@@ -1,4 +1,3 @@
-const _ = require('lodash');
 const cssMatcher = require('jest-matcher-css');
 const postcss = require('postcss');
 const tailwindcss = require('tailwindcss');
@@ -10,15 +9,22 @@ Object.keys(defaultConfig.modules).forEach(module => {
   disabledModules[module] = false;
 });
 
+const transitionPrefix = 'transition';
+const willChangePrefix = 'will-change';
+
 const generatePluginCss = (options = {}) => {
-  return postcss(tailwindcss({
-    modules: disabledModules,
-    plugins: [transitionsPlugin(options)],
-  })).process('@tailwind utilities;', {
-    from: undefined,
-  }).then(result => {
-    return result.css;
-  });
+  return postcss(
+    tailwindcss({
+      modules: disabledModules,
+      plugins: [transitionsPlugin(options)],
+    }),
+  )
+    .process('@tailwind utilities;', {
+      from: undefined,
+    })
+    .then(result => {
+      return result.css;
+    });
 };
 
 expect.extend({
@@ -26,9 +32,12 @@ expect.extend({
 });
 
 test('options are not required', () => {
-  return generatePluginCss().then(css => {
+  return generatePluginCss({
+    transitionPrefix,
+    willChangePrefix,
+  }).then(css => {
     expect(css).toMatchCss(`
-      .transition-none {
+      .${transitionPrefix}-none {
         transition: none;
       }
     `);
@@ -37,15 +46,17 @@ test('options are not required', () => {
 
 test('there is a default duration value', () => {
   return generatePluginCss({
+    transitionPrefix,
+    willChangePrefix,
     properties: {
-      'transform': 'transform',
+      transform: 'transform',
     },
   }).then(css => {
     expect(css).toMatchCss(`
-      .transition-none {
+      .${transitionPrefix}-none {
         transition: none;
       }
-      .transition-transform {
+      .${transitionPrefix}-transform {
         transition: transform 500ms;
       }
     `);
@@ -54,18 +65,20 @@ test('there is a default duration value', () => {
 
 test('the default duration can be changed', () => {
   return generatePluginCss({
+    transitionPrefix,
+    willChangePrefix,
     properties: {
-      'transform': 'transform',
+      transform: 'transform',
     },
     durations: {
-      'default': '100ms',
-    }
+      default: '100ms',
+    },
   }).then(css => {
     expect(css).toMatchCss(`
-      .transition-none {
+      .${transitionPrefix}-none {
         transition: none;
       }
-      .transition-transform {
+      .${transitionPrefix}-transform {
         transition: transform 100ms;
       }
     `);
@@ -74,24 +87,26 @@ test('the default duration can be changed', () => {
 
 test('a default timing function and a default delay can be set', () => {
   return generatePluginCss({
+    transitionPrefix,
+    willChangePrefix,
     properties: {
-      'transform': 'transform',
+      transform: 'transform',
     },
     durations: {
-      'default': '100ms',
+      default: '100ms',
     },
     timingFunctions: {
-      'default': 'linear',
+      default: 'linear',
     },
     delays: {
-      'default': '200ms',
+      default: '200ms',
     },
   }).then(css => {
     expect(css).toMatchCss(`
-      .transition-none {
+      .${transitionPrefix}-none {
         transition: none;
       }
-      .transition-transform {
+      .${transitionPrefix}-transform {
         transition: transform 100ms linear 200ms;
       }
     `);
@@ -100,61 +115,63 @@ test('a default timing function and a default delay can be set', () => {
 
 test('all the options are working together as they should', () => {
   return generatePluginCss({
+    transitionPrefix,
+    willChangePrefix,
     properties: {
-      'opacity': 'opacity',
+      opacity: 'opacity',
       'opacity-and-color': ['opacity', 'color'],
     },
     durations: {
-      'default': '100ms',
+      default: '100ms',
       '200': '200ms',
       '300': '300ms',
       '400': '400ms',
       '500': '500ms',
     },
     timingFunctions: {
-      'default': 'linear',
-      'ease': 'ease',
+      default: 'linear',
+      ease: 'ease',
     },
     delays: {
-      'none': '0s',
+      none: '0s',
     },
     willChange: {
-      'opacity': 'opacity',
-      'transform': 'transform',
+      opacity: 'opacity',
+      transform: 'transform',
     },
   }).then(css => {
     expect(css).toMatchCss(`
-      .transition-none {
+      .${transitionPrefix}-none {
         transition: none;
       }
-      .transition-opacity {
+      .${transitionPrefix}-opacity {
         transition: opacity 100ms linear;
       }
-      .transition-opacity-and-color {
+      .${transitionPrefix}-opacity-and-color {
         transition: opacity 100ms linear, color 100ms linear;
       }
-      .transition-duration-200 {
+      .${transitionPrefix}-duration-200 {
         transition-duration: 200ms;
       }
-      .transition-duration-300 {
+      .${transitionPrefix}-duration-300 {
         transition-duration: 300ms;
       }
-      .transition-duration-400 {
+      .${transitionPrefix}-duration-400 {
         transition-duration: 400ms;
       }
-      .transition-duration-500 {
+      .${transitionPrefix}-duration-500 {
         transition-duration: 500ms;
       }
-      .transition-timing-ease {
+      .${transitionPrefix}-timing-ease {
         transition-timing-function: ease;
       }
-      .transition-delay-none {
+      .${transitionPrefix}-delay-none {
         transition-delay: 0s;
       }
-      .will-change-opacity {
+      .${willChangePrefix}-opacity {
         will-change: opacity;
       }
-      .will-change-transform {
+      .${willChangePrefix}-transform {
         will-change: transform;
       }
     `);
@@ -163,17 +180,51 @@ test('all the options are working together as they should', () => {
 
 test('variants are supported', () => {
   return generatePluginCss({
+    transitionPrefix,
+    willChangePrefix,
     variants: ['hover', 'active'],
   }).then(css => {
     expect(css).toMatchCss(`
-      .transition-none {
+      .${transitionPrefix}-none {
         transition: none;
       }
-      .hover\\:transition-none:hover {
+      .hover\\:${transitionPrefix}-none:hover {
         transition: none;
       }
-      .active\\:transition-none:active {
+      .active\\:${transitionPrefix}-none:active {
         transition: none;
+      }
+    `);
+  });
+});
+
+test('custom prefixes are supported', () => {
+  const customTransitionPrefix = 'custom-transition';
+  const customWillChangePrefix = 'custom-will-change';
+
+  return generatePluginCss({
+    transitionPrefix: customTransitionPrefix,
+    willChangePrefix: customWillChangePrefix,
+    properties: {
+      transform: 'transform',
+    },
+    willChange: {
+      opacity: 'opacity',
+      transform: 'transform',
+    },
+  }).then(css => {
+    expect(css).toMatchCss(`
+      .${customTransitionPrefix}-none {
+        transition: none;
+      }
+      .${customTransitionPrefix}-transform {
+        transition: transform 500ms;
+      }
+      .${customWillChangePrefix}-opacity {
+        will-change: opacity;
+      }
+      .${customWillChangePrefix}-transform {
+        will-change: transform;
       }
     `);
   });
